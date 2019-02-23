@@ -15,76 +15,85 @@ var connection = mysql.createConnection({
     password: "F@bulous123",
     database: "bamazon_DB"
 });
-
+// connect to mysql
 connection.connect(function (err) {
-            if (err) throw err;
-            console.log("connected as id " + connection.threadId);
-            var query = "SELECT * FROM products";
-            connection.query(query, function (err, results) {
-                console.table(results);
-            });
-        
-            function buyItem() {
-                inquirer.prompt({
+    if (err) throw err;
+    console.log("connected as id " + connection.threadId);
+    var query = "SELECT * FROM products";
+    connection.query(query, function (err, results) {
+        console.table(results);
+        readTable();
+    });
 
-                                name: "products",
-                                type: "list",
-                                message: "what are you looking for??",
-                                choices: ["coffee", "cats", "roses",
-                                "cactus", "Iphone chargers", "coke",
-                                "light bulbs", "coconuts", "goldendoodle", "quartz"],
-                
+    function readTable() {
+        // var query = "SELECT * FROM products";
+        connection.query(query, function (err, results) {
+            console.log("\n Let's Shop Bamazon! \n");
+            connection.query("SELECT * FROM products", function (err, res) {
+                for (var i = 0; i < res.length; i++) {
+                    // console.log(res[i].itemid + " | " + res[i].product_name + " | " + res[i].department_name + " | " + res[i].price + " | " + res[i].stock_quantity + " | ");
+                    // console.log(res[i].coffee + "|" + res[i].cats + "| " + res[i].roses + " | " + res[i].cactus + "| " + res[i].IphoneChargers + "| " + res[i].coke + "| " + res[i].lightbulbs + "| " + res[i].coconuts + "| " + res[i].goldendodle + "| " + res[i].quartz + "|"); 
+
                 }
-                            .then(function (answer) {
-                                    var query = "SELECT * FROM products";
-                                    connection.query(query, {
-                                        quantity: answer.quantity
-                                    }, function (err, results) {
-                                        for (var i = 0; i < results.length; i++) {
-                                            console.log("coffee: " + results[i].coffee + "\ncats: " + results[i].cats + "\nroses: " + results[i].roses + "\ncactus: " + results[i].cactus + "\nIphoneChargers: " + results[i].IphoneChargers + "\ncoke: " + results[i].coke + "\nlightbulbs: " + results[i].lightbulbs + "\ncoconuts: " + results[i].coconuts + "\ngoldendoodle: " + results[i].goldendodle + "\nquartz: " + results[i].quartz + "\n--------");
-                                        
 
-                                        for (var i = 0; i < res.length; i++) {
-                                            //if product name equals to one of the selections then returns true for purchase
-                                            if (res[i].product_name == answer.choice) {
-                                                correct = true;
-                                                //product = choice the buyer made
-                                                var product = answer.choice;
-                                                //id of the item
-                                                // var id = i;
-                                                //asks user how many of the item which they chose they would like to purchase
-
-
-                                                inquirer.prompt({
-                                                    type: "input",
-                                                    name: "quantity",
-                                                    message: "How many would you like to buy?",
-                                                    //validate function below checks to see if the value inputted is a number
-                                                    validate: function (value) {
-                                                        if (isNaN(value) == false) {
-                                                            return true;
-                                                        } 
-                                                        else {
-                                                            return false;
-                                                        }
-                                                    }
-                                                })
-                                                .then(function (answer) {
-                                                    //if number isn't less than stock quantity then the purchase is allowed to happen as well as updating the database minus the quantity purchased
-                                                    if ((res[id].stock_quantity - answer.quantity) > 0) {
-                                                        connection.query("UPDATE products SET stock_quantity=' " + (res[id].stock_quantity - answer.quantity) + "' WHERE product_name='" + product + "'", function (err, res2) {
-                                                            console.log("Thank you for your purchase!");
-                                                            purchaseItem(res);
-                                                        })
-                                                    } else {
-                                                        //if product is sold out or less than quantity wanting to purchase then console log below
-                                                        console.log("Insufficient quantity!");
-                                                        purchaseItem(res);
-                                                    }
-                                                });
-                                                runSearch();
-                                         connection.end();
-                                            });
-                                        });
-                                
+                buyItem(res);
+            })
+            // ASK ITEM TO BUY
+            function buyItem(res) {
+                inquirer.prompt([{
+                    // name: "products",
+                    type: "input",
+                    name: "choice",
+                    message: "what are you looking for?? [press x to leave]"
+                    // choices: "coffee, cats, roses, cactus, Iphone chargers, coke,light bulbs, coconuts, goldendoodle, quartz (please type your selection)"
+                }]).then(function (answer) {
+                    var correct = false;
+                    // exit option
+                    if (answer.choice.toUpperCase() == "X") {
+                        process.exit();
+                    }
+                    for (var i = 0; i < res.length; i++) {
+                        // console.log(res[i].itemid + " | " + res[i].product_name + " | " + res[i].department_name + " | " + res[i].price + " | " + res[i].price + " | " + res[i].stock_quantity + " | ");
+                        // console.log("-------------------------------------------------");
+                        if (res[i].product_name == answer.choice) {
+                            correct = true;
+                            // product chosen
+                            var product = answer.choice;
+                            // ID#
+                            var id = i;
+                            // ASKS QUANTITY
+                            inquirer.prompt({
+                                type: "input",
+                                name: "quantity",
+                                message: "How many units would you like to buy?",
+                                //validate function below checks to see if the value inputted is a number
+                                validate: function (value) {
+                                    if (isNaN(value) == false) {
+                                        return true;
+                                    } else {
+                                        return false;
                                     }
+                                }
+
+                            }).then(function (answer) {
+                                //      //if number isn't less than stock quantity then the purchase is allowed to happen as well as updating the database minus the quantity purchased
+                                if ((res[id].stock_quantity - answer.quantity) > 0) {
+                                    connection.query("UPDATE products SET stock_quantity=' " + (res[id].stock_quantity - answer.quantity) + "' WHERE product_name='" + product + "'", function (err, res2) {
+                                        console.log("Thank you for your purchase!");
+                                        buyItem(res);
+                                    })
+                                } else {
+                                    //if product is sold out or less than quantity wanting to purchase then console log below
+                                    console.log("Insufficient quantity!");
+                                    buyItem(res);
+                                }
+                                connection.end();
+                            })
+
+                       }
+                     }
+                 })
+             }
+        })
+    }
+});
